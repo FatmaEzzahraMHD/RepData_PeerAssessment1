@@ -1,25 +1,125 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Project1"
+author: "EzzahraFatmaMHD"
+date: "1/23/2021"
+output: html_document
 ---
+#1-Code for reading in the dataset and/or processing the data  
 
 
-## Loading and preprocessing the data
+```{r getdata}
+# download file from web
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", destfile = "activity.zip", mode="wb")
+# unzip data and read 
+unzip("activity.zip")
+#data <- read.csv(unzip("./repdata_data_activity.zip"))
+data <- read.csv("activity.csv")
+
+```
+#2-Histogram of the total number of steps taken each day  
+
+
+```{r }
+library(dplyr)
+library(ggplot2)
+steps <- tapply(data$steps, data$date, FUN=sum, na.rm=TRUE)
+qplot(steps,main = "total number of steps taken each day",  xlab = "number of step" 
+      , ylab = "count"  )
+```
+#3-Mean and median number of steps taken each day  
+
+
+```{r}
+ mean(steps)
+
+```  
+ 
+```{r}
+
+median(steps)
+
+```  
+  
+
+
+#4-Time series plot of the average number of steps taken  
+
+```{r}
+
+avg  <- aggregate(x=list(steps_number=data$steps), by=list(interval=data$interval),
+                             FUN=mean, na.rm=TRUE)
+ggplot(avg, aes(x=interval, y=steps_number))+ geom_line()
+```
+
+#5-The 5-minute interval that, on average, contains the maximum number of steps  
+
+```{r}
+ avg[which.max(avg$steps_number),]
+
+```
+
+#6-Code to describe and show a strategy for imputing missing data  
+
+##Missing  
+
+```{r }
+missing <- is.na(data$steps)
+table(missing)
+```
+##Replacing the missings  
+
+```{r }
+replacewithmean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
+complete_data <- data%>% group_by(interval) %>% mutate(steps= replacewithmean(steps))
+head(complete_data)
+```
+
+#7-Histogram of the total number of steps taken each day after missing values are imputed  
+
+```{r }
+steps_with_no_missings <- tapply(complete_data$steps, complete_data$date, FUN=sum)
+qplot(steps_with_no_missings,binwidth = 600, xlab="total number of steps taken each day")
+
+```  
+
+```{r }
+mean(steps_with_no_missings)
+```  
+
+```{r ,echo=TRUE}
+ median(steps_with_no_missings)
+
+```  
+
+#8-Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends  
+
+##Procesisng data  
+
+```{r }
+which_day <- function(date) {
+  day <- weekdays(date)
+  if (day %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"))
+    return("weekday")
+  else if (day %in% c("Saturday", "Sunday"))
+    return("weekend")
+  else
+    stop("invalid date")
+}
+complete_data$date<- as.Date(complete_data$date)
+complete_data$day <- sapply(complete_data$date, FUN=which_day)
+averages <- aggregate(steps ~ interval + day, data=complete_data, mean)
+head(averages)
+
+```
+##Comparing  
+
+```{r }
+
+ggplot(averages, aes(interval, steps)) + geom_line() + facet_grid(day ~ .) +
+  xlab("5-minute interval") + ylab("Number of steps") +
+  ggtitle("Comparison of Average Number of Steps in Each Interval")
+
+```
 
 
 
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
